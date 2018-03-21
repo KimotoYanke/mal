@@ -1,0 +1,3 @@
+#!/bin/bash
+exec npx babel-node $(dirname $0)/${STEP:-stepA_mal}.js "${@}"
+
