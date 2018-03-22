@@ -82,7 +82,7 @@ IMPLS = ada awk bash basic c chuck clojure coffee common-lisp cpp crystal cs d d
 	elisp elixir elm erlang es6 factor forth fsharp go groovy gst guile haskell \
 	haxe hy io java js julia kotlin livescript logo lua make mal matlab miniMAL \
 	nasm nim objc objpascal ocaml perl perl6 php pil plpgsql plsql powershell ps \
-	python r racket rexx rpython ruby rust scala scheme skew swift swift3 tcl \
+	python r ramda-js racket rexx rpython ruby rust scala scheme skew swift swift3 tcl \
 	ts vb vhdl vimscript yorick
 
 EXTENSION = .mal
@@ -227,6 +227,7 @@ powershell_STEP_TO_PROG =  powershell/$($(1)).ps1
 ps_STEP_TO_PROG =      ps/$($(1)).ps
 python_STEP_TO_PROG =  python/$($(1)).py
 r_STEP_TO_PROG =       r/$($(1)).r
+ramda-js_STEP_TO_PROG =       ramda-js/$($(1)).js
 racket_STEP_TO_PROG =  racket/$($(1)).rkt
 rexx_STEP_TO_PROG =    rexx/$($(1)).rexxpp
 rpython_STEP_TO_PROG = rpython/$($(1))

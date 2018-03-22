@@ -1,0 +1,6 @@
+{
+    "extends": "standard",
+    "rules": {
+        "sort-imports": ["error"]
+    }
+}
