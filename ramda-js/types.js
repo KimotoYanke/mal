@@ -1,8 +1,9 @@
-import { all, compose, join, map, match } from 'ramda'
+import { __, all, compose, is, join, map, match } from 'ramda'
 
 class MalType {
   constructor () {
     this.isMalType = true
+    this.type = ''
   }
 
   toString () {
@@ -19,12 +20,12 @@ export class Blank extends MalType {
 }
 
 export class Seq extends MalType {
-  constructor (array) {
+  constructor (contents) {
     super()
-    if (!all(isMalType, array)) {
+    if (contents instanceof Array && !all(isMalType, contents)) {
       throw new Error()
     }
-    this.contents = array
+    this.contents = contents
     this.start = ''
     this.end = ''
   }
@@ -38,36 +39,70 @@ export class Seq extends MalType {
 }
 
 export class List extends Seq {
-  constructor (array) {
-    super(array)
+  constructor (contents) {
+    super(contents)
     this.start = '('
     this.end = ')'
+    this.type = 'list'
   }
 }
 export class Vector extends Seq {
-  constructor (array) {
-    super(array)
+  constructor (contents) {
+    super(contents)
     this.start = '['
     this.end = ']'
+    this.type = 'vector'
   }
 }
 
 export class HashMap extends Seq {
-  constructor (array) {
-    super(array)
+  constructor (contents) {
+    super(contents)
     this.start = '{'
     this.end = '}'
+    this.type = 'hash-map'
   }
+
+  toString () {
+    let result = '{'
+    const keys = Object.keys(this.contents)
+    for (let key of keys) {
+      result += key.toString()
+      result += ' '
+      result += this.contents[key].toString()
+    }
+    result += '}'
+    return result
+  }
+}
+
+export const ArrayToHashMap = array => {
+  if (array.length % 2 !== 0) {
+    throw new Error('Odd number of hash map arguments')
+  }
+  const contents = {}
+  for (let i = 0; i < array.length; i += 2) {
+    contents[array[i]] = array[i + 1]
+  }
+  return new HashMap(contents)
 }
 
 export class Atom extends MalType {
   constructor (name) {
     super()
     this.name = name
+    this.type = name
   }
 
   toString () {
     return this.name
+  }
+}
+
+export class Symbol extends Atom {
+  constructor (name) {
+    super(name)
+    this.type = 'symbol'
   }
 }
 
@@ -104,6 +139,10 @@ export class Deref extends Atom {
 export class Keyword extends Atom {
   constructor (name) {
     super(match(/^:?(.+)$/, name)[1])
+    this.type = 'keyword'
+  }
+  toString () {
+    return ':' + this.name
   }
 }
 
@@ -111,6 +150,7 @@ export class Int extends Atom {
   constructor (strInt) {
     super(strInt)
     this.number = parseInt(strInt, 10)
+    this.type = 'int'
   }
   toString () {
     return String(this.number)
@@ -121,6 +161,7 @@ export class Float extends Atom {
   constructor (strFloat) {
     super(strFloat)
     this.number = parseFloat(strFloat, 10)
+    this.type = 'float'
   }
   toString () {
     return String(this.number)
@@ -130,20 +171,36 @@ export class Float extends Atom {
 export class Nil extends Atom {
   constructor () {
     super('nil')
-    this.isNil = true
   }
 }
 
 export class True extends Atom {
   constructor () {
     super('true')
-    this.isTrue = true
   }
 }
 
 export class False extends Atom {
   constructor () {
     super('true')
-    this.isFalse = true
+  }
+}
+
+export const convertToAST = ast => {
+  const isAST = is(__, ast)
+  if (isAST(Number)) {
+    return new Float(String(ast))
+  }
+  return new Symbol(ast)
+}
+
+export class MalFunction extends Symbol {
+  constructor (name, f) {
+    super(name)
+    this.func = f
+  }
+  call (args) {
+    const result = this.func(args)
+    return convertToAST(result)
   }
 }

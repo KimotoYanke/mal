@@ -90,7 +90,7 @@ const readAtom = reader => {
     },
     {
       re: /.*/,
-      parser: token => new Types.Atom(token)
+      parser: token => new Types.Symbol(token)
     }
   ]
   const token = reader.peek()
@@ -127,4 +127,4 @@ const readSeq = curry((reader, start, end, astToStr) => {
 
 const readList = readSeq(__, '(', ')', ast => new Types.List(ast))
 const readVector = readSeq(__, '[', ']', ast => new Types.Vector(ast))
-const readHashMap = readSeq(__, '{', '}', ast => new Types.HashMap(ast))
+const readHashMap = readSeq(__, '{', '}', ast => Types.ArrayToHashMap(ast))
