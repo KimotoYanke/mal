@@ -203,4 +203,7 @@ export class MalFunction extends Symbol {
     const result = this.func(args)
     return convertToAST(result)
   }
+  toString () {
+    return '#<function>'
+  }
 }
