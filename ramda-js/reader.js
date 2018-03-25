@@ -1,6 +1,6 @@
 import * as Types from './types'
 
-import { __, curry, dec, filter, find, test } from 'ramda'
+import { __, curry, dec, filter, find, match, test } from 'ramda'
 
 class Reader {
   constructor (tokens) {
@@ -29,7 +29,7 @@ export const readStr = str => {
 
 const tokenizer = str => {
   let match = null
-  const tokenForRegExp = /[\s,]*(~@|[[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s[\]{}('"`,;)]*)/g
+  const tokenForRegExp = /[\s,]*(~@|[[\]{}()'`~^@]|"(?:\\\\"|\\.|[^\\"])*"|;.*|[^\s[\]{}('"`,;)]*)/g
   const results = []
   while ((match = tokenForRegExp.exec(str)) !== null) {
     if (match[1] === '') break
@@ -87,6 +87,24 @@ const readAtom = reader => {
     {
       re: /^:/,
       parser: token => new Types.Keyword(token)
+    },
+    {
+      re: /^".*?"$/,
+      parser: token => {
+        return new Types.MalString(match(/^"(.*)"$/, token)[1])
+      }
+    },
+    {
+      re: /^nil$/,
+      parser: token => Types.nil
+    },
+    {
+      re: /^true$/,
+      parser: token => Types.malTrue
+    },
+    {
+      re: /^false$/,
+      parser: token => Types.malFalse
     },
     {
       re: /.*/,

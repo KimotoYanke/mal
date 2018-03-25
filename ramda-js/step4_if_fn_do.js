@@ -1,16 +1,16 @@
 import * as Types from './types'
 import {
-  add,
-  apply,
+  __,
   compose,
-  divide,
+  curry,
+  forEachObjIndexed,
   join,
+  last,
   map,
-  multiply,
-  splitAt,
-  subtract
+  splitAt
 } from 'ramda'
 import { Env } from './env'
+import { ns } from './core'
 import { printStr } from './printer'
 import { readStr } from './reader'
 import { readline } from './node_readline'
@@ -31,19 +31,41 @@ const EVAL = (ast, env) => {
     return ast
   }
 
-  switch (ast.contents[0].name) {
+  const firstSymbol = ast.contents[0]
+  const params = splitAt(1, ast.contents)[1]
+  switch (firstSymbol.name) {
     case 'def!':
-      return env.set(ast.contents[1], EVAL(ast.contents[2], env))
+      return env.set(params[0], EVAL(params[1], env))
     case 'let*':
       const letEnv = new Env(env)
-      for (let i = 0; i < ast.contents[1].contents.length; i += 2) {
+      for (let i = 0; i < params[0].contents.length; i += 2) {
         letEnv.set(
-          ast.contents[1].contents[i].name,
-          EVAL(ast.contents[1].contents[i + 1], letEnv)
+          params[0].contents[i].name,
+          EVAL(params[0].contents[i + 1], letEnv)
         )
       }
-      return EVAL(ast.contents[2], letEnv)
-
+      return EVAL(params[1], letEnv)
+    case 'do':
+      return last(EVAL(params, env))
+    case 'if':
+      if (Types.isTrue(EVAL(params[0], env))) {
+        if (params[1]) {
+          return EVAL(params[1], env)
+        } else {
+          return Types.nil
+        }
+      } else {
+        if (params[2]) {
+          return EVAL(params[2], env)
+        } else {
+          return Types.nil
+        }
+      }
+    case 'fn*':
+      return new Types.MalFunction(localParams => {
+        const fnEnv = new Env(env, params[0].contents, localParams)
+        return EVAL(params[1], fnEnv)
+      })
     default:
       const el = evalAst(ast, env)
       const f = el.contents[0]
@@ -53,14 +75,13 @@ const EVAL = (ast, env) => {
 }
 
 // print
-const PRINT = compose(join(' '), map(printStr))
+const PRINT = compose(join(' '), map(curry(printStr)(__, true)))
 
 // repl
 const replEnv = new Env()
-replEnv.set('+', new Types.MalFunction(apply(add)))
-replEnv.set('-', new Types.MalFunction(apply(subtract)))
-replEnv.set('*', new Types.MalFunction(apply(multiply)))
-replEnv.set('/', new Types.MalFunction(apply(divide)))
+forEachObjIndexed((val, key) => {
+  replEnv.set(key, val)
+}, ns)
 
 const evalAst = (ast, env) => {
   const evalWithEnv = x => EVAL(x, env)
@@ -85,6 +106,7 @@ const evalAst = (ast, env) => {
 const REP = str => PRINT(EVAL(READ(str), replEnv))
 
 for (;;) {
+  REP('(def! not (fn* (a) (if a false true)))')
   const line = readline('user> ')
   if (line == null) {
     break

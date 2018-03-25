@@ -1,11 +1,21 @@
 import * as Types from './types'
 export class Env {
-  constructor (outer) {
+  constructor (outer, binds, exprs) {
     this.outer = outer || { find: () => undefined }
     this.data = {}
+
+    if (binds && exprs) {
+      for (let i = 0; i < binds.length; i++) {
+        if (binds[i].name === '&') {
+          this.data[binds[i + 1].name] = new Types.List(exprs.slice(i))
+          break
+        }
+        this.data[binds[i]] = exprs[i]
+      }
+    }
   }
-  set (malStructure, name) {
-    this.data[name || malStructure.name] = malStructure
+  set (name, malStructure) {
+    this.data[name] = malStructure
     return malStructure
   }
   find (name) {

@@ -1,4 +1,4 @@
-import { __, all, compose, is, join, map, match } from 'ramda'
+import { __, all, compose, is, join, map, match, replace } from 'ramda'
 
 class MalType {
   constructor () {
@@ -23,17 +23,17 @@ export class Seq extends MalType {
   constructor (contents) {
     super()
     if (contents instanceof Array && !all(isMalType, contents)) {
-      throw new Error()
+      throw new Error(`${contents} is array but not mal structures`)
     }
     this.contents = contents
     this.start = ''
     this.end = ''
   }
 
-  toString () {
+  toString (printReadably) {
     const spacer = join(' ')
-    return `${this.start}${compose(spacer, map(s => s.toString()))(
-      this.contents
+    return `${this.start}${spacer(
+      map(s => s.toString(printReadably), this.contents)
     )}${this.end}`
   }
 }
@@ -172,38 +172,92 @@ export class Nil extends Atom {
   constructor () {
     super('nil')
   }
-}
-
-export class True extends Atom {
-  constructor () {
-    super('true')
+  toString () {
+    return 'nil'
   }
 }
 
-export class False extends Atom {
-  constructor () {
-    super('true')
+export class MalBoolean extends Atom {
+  constructor (b) {
+    b ? super('true') : super('false')
+    this.booleanValue = b
   }
 }
 
-export const convertToAST = ast => {
-  const isAST = is(__, ast)
-  if (isAST(Number)) {
-    return new Float(String(ast))
+export const malTrue = new MalBoolean(true)
+export const malFalse = new MalBoolean(false)
+export const nil = new Nil()
+export const convertToBoolean = val => (val ? malTrue : malFalse)
+
+export const convertToAST = val => {
+  const getValType = is(__, val)
+  if (getValType(Number)) {
+    return new Float(String(val))
   }
-  return new Symbol(ast)
+  if (getValType(Boolean)) {
+    return convertToBoolean(val)
+  }
+  if (getValType(String)) {
+    return new MalString(val)
+  }
+  return new Symbol(val)
 }
 
 export class MalFunction extends Symbol {
-  constructor (name, f) {
-    super(name)
-    this.func = f
+  constructor (f1, f2) {
+    if (f1 instanceof String) {
+      super(f1)
+    } else {
+      super('#<function>')
+      this.func = f1
+    }
   }
   call (args) {
     const result = this.func(args)
+    if (result && result.isMalType) {
+      return result
+    }
     return convertToAST(result)
   }
   toString () {
     return '#<function>'
   }
+}
+
+export class MalString extends Atom {
+  constructor (str, unescaped) {
+    super(str)
+
+    // console.log(str)
+    if (unescaped) {
+      this.str = str
+    } else {
+      this.str = str.replace(/\\(.)/g, (_, c) => {
+        return c === 'n' ? '\n' : c
+      })
+    }
+    // console.log(this.str)
+  }
+  toString (printReadably) {
+    if (printReadably === undefined) {
+      printReadably = true
+    }
+    if (this.str[0] === '\u029e') {
+      return ':' + this.str.slice(1)
+    } else if (printReadably) {
+      return `"${this.str
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')}"`
+    } else {
+      return this.str
+    }
+  }
+}
+
+export const isTrue = ast => {
+  if ((ast instanceof MalBoolean && !ast.booleanValue) || ast instanceof Nil) {
+    return false
+  }
+  return true
 }
