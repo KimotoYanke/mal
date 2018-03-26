@@ -15,7 +15,12 @@ export class Env {
     }
   }
   set (name, malStructure) {
-    this.data[name] = malStructure
+    if (name instanceof String) {
+      this.data[name] = malStructure
+    } else {
+      this.data[name.toString()] = malStructure
+    }
+
     return malStructure
   }
   find (name) {
@@ -23,10 +28,7 @@ export class Env {
   }
   get (name) {
     const result = this.find(name)
-    if (!result) {
-      throw new Error(`${name} is not found.`)
-    }
-    return result
+    return result || Types.nil
   }
   getBySymbol (symbol) {
     if (!(symbol instanceof Types.Symbol)) {

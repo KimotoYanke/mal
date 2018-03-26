@@ -41,7 +41,7 @@ const tokenizer = str => {
 const readForm = reader => {
   if (test(/^;.*$/, reader.peek())) {
     reader.next()
-    return new Types.Blank()
+    return
   }
   switch (reader.peek()) {
     case undefined:
@@ -137,7 +137,10 @@ const readSeq = curry((reader, start, end, astToStr) => {
     if (!reader.peek()) {
       throw new Error(`expected '${end}', got EOF`)
     }
-    ast.push(readForm(reader))
+    const now = readForm(reader)
+    if (now) {
+      ast.push(now)
+    }
   }
   reader.next()
   return astToStr(ast)

@@ -51,7 +51,9 @@ const replEnv = {
 const evalAst = (ast, env) => {
   const evalWithEnv = x => EVAL(x, env)
   if (ast instanceof Types.Symbol) {
-    return new Types.MalFunction(ast.name, env[ast.name])
+    const malf = new Types.MalFunction(env[ast.name])
+    malf.name = ast.name
+    return malf
   } else if (ast instanceof Types.List) {
     return new Types.List(map(evalWithEnv, ast.contents))
   } else if (ast instanceof Types.Vector) {

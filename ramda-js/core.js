@@ -8,9 +8,13 @@ import {
   merge,
   mergeAll,
   multiply,
+  reduce,
   subtract
 } from 'ramda'
+import fs from 'fs'
+import path from 'path'
 import { printStr } from './printer'
+import { readStr } from './reader'
 
 const equals = (ast1, ast2) => {
   // console.log(ast1, ast2)
@@ -50,8 +54,6 @@ const equals = (ast1, ast2) => {
   }
   return false
 }
-
-const printStrAndConvertToAST = ast => new Types.MalString(printStr(ast))
 
 const nsApplizedFunction = map(__, {
   '+': add,
@@ -94,6 +96,23 @@ const nsApplizedFunction = map(__, {
       return ast1.number <= ast2.number
     }
     return false
+  },
+  'read-string': ast => {
+    return readStr(ast.str)[0]
+  },
+  slurp: f => fs.readFileSync(path.resolve(f.toString(false)), 'utf-8'),
+  atom: val => new Types.Atom(val),
+  'atom?': atom => atom instanceof Types.Atom,
+  deref: atom => atom.val,
+  'reset!': (atom, newVal) => {
+    atom.val = newVal
+    return newVal
+  },
+  'swap!': (atom, f, ...args) => {
+    let result = atom.val
+    result = f.call([result, ...args])
+    atom.val = result
+    return atom.val
   }
 })(f => new Types.MalFunction(apply(f)))
 
@@ -122,4 +141,8 @@ const nsFunctions = merge(
   })(f => new Types.MalFunction(f))
 )
 
-export const ns = mergeAll([nsFunctions])
+const nsSymbols = {
+  '*ARGV*': new Types.List([])
+}
+
+export const ns = mergeAll([nsFunctions, nsSymbols])

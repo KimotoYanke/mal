@@ -1,21 +1,44 @@
 import { __, all, compose, is, join, map, match, replace } from 'ramda'
 
 class MalType {
-  constructor () {
+  constructor (name) {
     this.isMalType = true
+    this.name = name
     this.type = ''
   }
 
   toString () {
-    return ''
+    return this.name
   }
 }
 
 const isMalType = type => type.isMalType
 
 export class Blank extends MalType {
+  constructor () {
+    super()
+    // throw new Error('Blank has created')
+  }
   toString () {
     return ''
+  }
+}
+
+export class Symbol extends MalType {
+  constructor (name) {
+    super(name)
+    this.type = 'symbol'
+  }
+}
+
+export class Atom extends MalType {
+  constructor (val) {
+    super()
+    this.val = val
+  }
+
+  toString () {
+    return new List([new Symbol('atom'), this.val]).toString()
   }
 }
 
@@ -86,57 +109,37 @@ export const ArrayToHashMap = array => {
   }
   return new HashMap(contents)
 }
-
-export class Atom extends MalType {
-  constructor (name) {
-    super()
-    this.name = name
-    this.type = name
-  }
-
-  toString () {
-    return this.name
-  }
-}
-
-export class Symbol extends Atom {
-  constructor (name) {
-    super(name)
-    this.type = 'symbol'
-  }
-}
-
-export class Quote extends Atom {
+export class Quote extends MalType {
   constructor () {
     super('quote')
   }
 }
 
-export class Quasiquote extends Atom {
+export class Quasiquote extends MalType {
   constructor () {
     super('quasiquote')
   }
 }
 
-export class Unquote extends Atom {
+export class Unquote extends MalType {
   constructor () {
     super('unquote')
   }
 }
 
-export class SpliceUnquote extends Atom {
+export class SpliceUnquote extends MalType {
   constructor () {
     super('splice-unquote')
   }
 }
 
-export class Deref extends Atom {
+export class Deref extends Symbol {
   constructor () {
     super('deref')
   }
 }
 
-export class Keyword extends Atom {
+export class Keyword extends MalType {
   constructor (name) {
     super(match(/^:?(.+)$/, name)[1])
     this.type = 'keyword'
@@ -146,7 +149,7 @@ export class Keyword extends Atom {
   }
 }
 
-export class Int extends Atom {
+export class Int extends MalType {
   constructor (strInt) {
     super(strInt)
     this.number = parseInt(strInt, 10)
@@ -157,7 +160,7 @@ export class Int extends Atom {
   }
 }
 
-export class Float extends Atom {
+export class Float extends MalType {
   constructor (strFloat) {
     super(strFloat)
     this.number = parseFloat(strFloat, 10)
@@ -168,7 +171,7 @@ export class Float extends Atom {
   }
 }
 
-export class Nil extends Atom {
+export class Nil extends MalType {
   constructor () {
     super('nil')
   }
@@ -177,7 +180,7 @@ export class Nil extends Atom {
   }
 }
 
-export class MalBoolean extends Atom {
+export class MalBoolean extends MalType {
   constructor (b) {
     b ? super('true') : super('false')
     this.booleanValue = b
@@ -200,21 +203,26 @@ export const convertToAST = val => {
   if (getValType(String)) {
     return new MalString(val)
   }
+  if (val instanceof MalType) {
+    return val
+  }
+  if (getValType(Array)) {
+    throw new Error()
+  }
   return new Symbol(val)
 }
 
-export class MalFunction extends Symbol {
-  constructor (f1, f2) {
-    if (f1 instanceof String) {
-      super(f1)
-    } else {
-      super('#<function>')
-      this.func = f1
-    }
+export class MalFunction extends MalType {
+  constructor (f, ast, env, params) {
+    super('#<function>')
+    this.func = f
+    this.ast = ast
+    this.env = env
+    this.params = params
   }
   call (args) {
     const result = this.func(args)
-    if (result && result.isMalType) {
+    if (result && result instanceof MalType) {
       return result
     }
     return convertToAST(result)
@@ -224,11 +232,10 @@ export class MalFunction extends Symbol {
   }
 }
 
-export class MalString extends Atom {
+export class MalString extends MalType {
   constructor (str, unescaped) {
     super(str)
 
-    // console.log(str)
     if (unescaped) {
       this.str = str
     } else {
@@ -236,12 +243,12 @@ export class MalString extends Atom {
         return c === 'n' ? '\n' : c
       })
     }
-    // console.log(this.str)
   }
   toString (printReadably) {
     if (printReadably === undefined) {
       printReadably = true
     }
+
     if (this.str[0] === '\u029e') {
       return ':' + this.str.slice(1)
     } else if (printReadably) {
