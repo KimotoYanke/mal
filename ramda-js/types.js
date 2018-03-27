@@ -1,4 +1,15 @@
-import { __, all, compose, is, join, map, match, replace } from 'ramda'
+import {
+  __,
+  all,
+  compose,
+  is,
+  join,
+  lensProp,
+  map,
+  match,
+  replace,
+  set
+} from 'ramda'
 
 class MalType {
   constructor (name) {
@@ -219,6 +230,7 @@ export class MalFunction extends MalType {
     this.ast = ast
     this.env = env
     this.params = params
+    this.isMacro = false
   }
   call (args) {
     const result = this.func(args)
@@ -230,6 +242,10 @@ export class MalFunction extends MalType {
   toString () {
     return '#<function>'
   }
+}
+export const turnToMacro = malf => {
+  malf.isMacro = true
+  return malf
 }
 
 export class MalString extends MalType {

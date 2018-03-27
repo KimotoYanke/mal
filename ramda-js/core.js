@@ -4,6 +4,7 @@ import {
   add,
   apply,
   divide,
+  last,
   map,
   merge,
   mergeAll,
@@ -122,6 +123,45 @@ const nsApplizedFunction = map(__, {
       return new Types.List([el])
     }
     return new Types.List([el, ...list.contents])
+  },
+  nth: (l, n) => {
+    if (l instanceof Types.Nil) {
+      return Types.nil
+    }
+    if (!(l instanceof Types.Seq)) {
+      throw new Error(`${l} is not a seq`)
+    }
+    if (l.contents.length === 0) {
+      return Types.nil
+    }
+    if (n < 0 || n >= l.contents.length) {
+      throw new Error('Out of range')
+    }
+    return l.contents[n]
+  },
+  first: l => {
+    if (l instanceof Types.Nil) {
+      return Types.nil
+    }
+    if (!(l instanceof Types.Seq)) {
+      throw new Error(`${l} is not a seq`)
+    }
+    if (l.contents.length === 0) {
+      return Types.nil
+    }
+    return l.contents[0]
+  },
+  rest: l => {
+    if (l instanceof Types.Nil) {
+      return new Types.List([])
+    }
+    if (!(l instanceof Types.Seq)) {
+      throw new Error(`${l} is not a seq`)
+    }
+    if (l.contents.length === 0) {
+      return new Types.List([])
+    }
+    return new Types.List(l.contents.slice(1))
   }
 })(f => new Types.MalFunction(apply(f)))
 
@@ -158,4 +198,8 @@ const nsSymbols = {
   '*ARGV*': new Types.List([])
 }
 
-export const ns = mergeAll([nsFunctions, nsSymbols])
+const nsMacros = map(__, {})(f =>
+  Types.turnToMacro(new Types.MalFunction(apply(f)))
+)
+
+export const ns = mergeAll([nsFunctions, nsSymbols, nsMacros])
