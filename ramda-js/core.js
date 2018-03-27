@@ -8,8 +8,8 @@ import {
   merge,
   mergeAll,
   multiply,
-  reduce,
-  subtract
+  subtract,
+  unnest
 } from 'ramda'
 import fs from 'fs'
 import path from 'path'
@@ -29,6 +29,9 @@ const equals = (ast1, ast2) => {
     return ast1.number === ast2.number
   }
   if (astAnd(a => a instanceof Types.Keyword)) {
+    return ast1.name === ast2.name
+  }
+  if (astAnd(a => a instanceof Types.Symbol)) {
     return ast1.name === ast2.name
   }
   if (astAnd(a => a instanceof Types.MalString)) {
@@ -113,6 +116,12 @@ const nsApplizedFunction = map(__, {
     result = f.call([result, ...args])
     atom.val = result
     return atom.val
+  },
+  cons: (el, list) => {
+    if (list instanceof Types.Nil) {
+      return new Types.List([el])
+    }
+    return new Types.List([el, ...list.contents])
   }
 })(f => new Types.MalFunction(apply(f)))
 
@@ -137,6 +146,10 @@ const nsFunctions = merge(
     prn: l => {
       console.log(`${map(__, l)(ast => printStr(ast, true)).join(' ')}`)
       return Types.nil
+    },
+    concat: l => {
+      const array = map(__, l)(ast => ast.contents)
+      return new Types.List(unnest(array))
     }
   })(f => new Types.MalFunction(f))
 )

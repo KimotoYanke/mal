@@ -18,6 +18,33 @@ import { readline } from './node_readline'
 const READ = readStr
 
 // eval
+const isPair = ast => ast instanceof Types.Seq && ast.contents.length > 0
+const quasiquote = ast => {
+  if (!isPair(ast)) {
+    return new Types.List([new Types.Quote(), ast])
+  }
+  if (
+    ast.contents[0] instanceof Types.Symbol &&
+    ast.contents[0].name === 'unquote'
+  ) {
+    return ast.contents[1]
+  }
+  if (
+    isPair(ast.contents[0]) &&
+    ast.contents[0].contents[0].name === 'splice-unquote'
+  ) {
+    return new Types.List([
+      new Types.Symbol('concat'),
+      ast.contents[0].contents[1],
+      quasiquote(new Types.List(ast.contents.slice(1)))
+    ])
+  }
+  return new Types.List([
+    new Types.Symbol('cons'),
+    quasiquote(ast.contents[0]),
+    quasiquote(new Types.List(ast.contents.slice(1)))
+  ])
+}
 const EVAL = (aAst, aEnv) => {
   let ast = aAst
   let env = aEnv
@@ -82,6 +109,11 @@ const EVAL = (aAst, aEnv) => {
           env,
           params[0].contents
         )
+      case 'quote':
+        return params[0]
+      case 'quasiquote':
+        ast = quasiquote(params[0])
+        break
       default:
         const el = evalAst(ast, env)
         const f = el.contents[0]

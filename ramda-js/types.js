@@ -109,25 +109,25 @@ export const ArrayToHashMap = array => {
   }
   return new HashMap(contents)
 }
-export class Quote extends MalType {
+export class Quote extends Symbol {
   constructor () {
     super('quote')
   }
 }
 
-export class Quasiquote extends MalType {
+export class Quasiquote extends Symbol {
   constructor () {
     super('quasiquote')
   }
 }
 
-export class Unquote extends MalType {
+export class Unquote extends Symbol {
   constructor () {
     super('unquote')
   }
 }
 
-export class SpliceUnquote extends MalType {
+export class SpliceUnquote extends Symbol {
   constructor () {
     super('splice-unquote')
   }
