@@ -3,9 +3,10 @@ import {
   __,
   add,
   apply,
+  dissoc,
   divide,
-  last,
   map,
+  mapObjIndexed,
   merge,
   mergeAll,
   multiply,
@@ -56,15 +57,47 @@ const equals = (ast1, ast2) => {
   ) {
     return true
   }
+  if (astAnd(a => a instanceof Types.HashMap)) {
+    if (ast1.contents.size !== ast2.contents.size) {
+      return false
+    }
+    for (let k1 of ast1.contents.keys()) {
+      for (let k2 of ast2.contents.keys()) {
+        if (equals(k1, k2)) {
+          if (!equals(ast1.contents.get(k1), ast2.contents.get(k2))) {
+            return false
+          }
+        }
+      }
+    }
+    return true
+  }
   return false
 }
+const getFromMap = (map, key) => {
+  if (!(map instanceof Types.HashMap)) {
+    return Types.nil
+  }
+  for (let k of map.contents.keys()) {
+    if (equals(k, key)) {
+      return map.contents.get(k)
+    }
+  }
+  return Types.nil
+}
 
-const nsApplizedFunction = map(__, {
+const nsApplizedFunction = mapObjIndexed(__, {
   '+': add,
   '-': subtract,
   '*': multiply,
   '/': divide,
   'list?': ast => ast instanceof Types.List,
+  'vector?': ast => ast instanceof Types.Vector,
+  'map?': ast => ast instanceof Types.HashMap,
+  'sequential?': ast =>
+    ast instanceof Types.HashMap ||
+    ast instanceof Types.List ||
+    ast instanceof Types.Vector,
   'empty?': ast => (ast.contents ? ast.contents.length === 0 : false),
   count: ast =>
     ast.contents
@@ -162,13 +195,84 @@ const nsApplizedFunction = map(__, {
       return new Types.List([])
     }
     return new Types.List(l.contents.slice(1))
+  },
+  throw: e => {
+    throw e
+  },
+  'nil?': ast => ast instanceof Types.Nil,
+  'true?': ast => ast instanceof Types.MalBoolean && ast.booleanValue === true,
+  'false?': ast =>
+    ast instanceof Types.MalBoolean && ast.booleanValue === false,
+
+  symbol: str => new Types.Symbol(str.toString(false)),
+  'symbol?': ast => ast instanceof Types.Symbol,
+  keyword: str => new Types.Keyword(str.toString(false)),
+  'keyword?': ast => ast instanceof Types.Keyword,
+
+  dissoc: (map, ...keys) => {
+    const result = new Map(Array.from(map.contents.entries()))
+    for (let k of map.contents.keys()) {
+      for (let key of keys) {
+        if (equals(k, key) || key.toString() === k) {
+          result.delete(k)
+        }
+      }
+    }
+    return new Types.HashMap(result)
+  },
+  assoc: (map, ...args) => {
+    const result = new Map(Array.from(map.contents.entries()))
+
+    if (args.length % 2 !== 0) {
+      throw new Error(`${args} is not odd number`)
+    }
+    for (let i = 0; i < args.length; i += 2) {
+      for (let k of map.contents.keys()) {
+        if (equals(k, args[i])) {
+          result.delete(k)
+        }
+      }
+      result.set(args[i], args[i + 1])
+    }
+    return new Types.HashMap(result)
+  },
+  get: getFromMap,
+  'contains?': (map, key) => {
+    for (let k of map.contents.keys()) {
+      if (equals(k, key) || key.toString() === k) {
+        return true
+      }
+    }
+    return false
+  },
+  keys: map => {
+    return new Types.List(Array.from(map.contents.keys()))
+  },
+  vals: map => {
+    return new Types.List(Array.from(map.contents.values()))
+  },
+
+  apply: (func, ...args) => {
+    const betweenArgs = args.slice(0, -1)
+    const resultArgs = betweenArgs.concat(args[args.length - 1].contents)
+
+    return func.call(resultArgs)
+  },
+  map: (func, list) => {
+    if (!list) {
+      return
+    }
+    const l = map(c => func.call([c]), list.contents)
+    return new Types.List(l)
   }
-})(f => new Types.MalFunction(apply(f)))
+})((f, key) => new Types.MalFunction(apply(f)))
 
 const nsFunctions = merge(
   nsApplizedFunction,
   map(__, {
     list: args => new Types.List(args),
+    vector: args => new Types.Vector(args),
+    'hash-map': args => new Types.ArrayToHashMap(args),
     str: l =>
       new Types.MalString(
         `${map(__, l)(ast => printStr(ast, false)).join('')}`,

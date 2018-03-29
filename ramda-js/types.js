@@ -91,20 +91,23 @@ export class Vector extends Seq {
 
 export class HashMap extends Seq {
   constructor (contents) {
+    if (!(contents instanceof Map)) {
+      throw new Error(`${contents} is not a Map`)
+    }
     super(contents)
     this.start = '{'
     this.end = '}'
     this.type = 'hash-map'
   }
 
-  toString () {
+  toString (printReadably) {
     let result = '{'
-    const keys = Object.keys(this.contents)
+    const keys = this.contents.keys()
     for (let key of keys) {
-      result += key.toString()
-      result += ' '
-      result += this.contents[key].toString()
+      result += key.toString(printReadably) + ' '
+      result += this.contents.get(key).toString(printReadably) + ' '
     }
+    result = result.trim()
     result += '}'
     return result
   }
@@ -114,9 +117,9 @@ export const ArrayToHashMap = array => {
   if (array.length % 2 !== 0) {
     throw new Error('Odd number of hash map arguments')
   }
-  const contents = {}
+  const contents = new Map()
   for (let i = 0; i < array.length; i += 2) {
-    contents[array[i]] = array[i + 1]
+    contents.set(array[i], array[i + 1])
   }
   return new HashMap(contents)
 }

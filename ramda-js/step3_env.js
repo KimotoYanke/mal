@@ -71,10 +71,10 @@ const evalAst = (ast, env) => {
   } else if (ast instanceof Types.Vector) {
     return new Types.Vector(map(evalWithEnv, ast.contents))
   } else if (ast instanceof Types.HashMap) {
-    const newHashMap = {}
-    const keys = Object.keys(ast.contents)
+    const newHashMap = new Map()
+    const keys = ast.contents.keys()
     for (let key of keys) {
-      newHashMap[evalWithEnv(key)] = evalWithEnv(ast.contents[key])
+      newHashMap.set(evalWithEnv(key), evalWithEnv(ast.contents.get(key)))
     }
     return new Types.HashMap(newHashMap)
   } else {

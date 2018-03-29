@@ -1,7 +1,7 @@
 import * as Types from './types'
 export class Env {
   constructor (outer, binds, exprs) {
-    this.outer = outer || { find: () => undefined }
+    this.outer = outer || { find: () => undefined, contains: () => undefined }
     this.data = {}
 
     if (binds && exprs) {
@@ -28,6 +28,9 @@ export class Env {
   }
   get (name) {
     const result = this.find(name)
+    if (!result) {
+      throw new Error(`'${name}' not found`)
+    }
     return result || Types.nil
   }
   getBySymbol (symbol) {
@@ -35,5 +38,8 @@ export class Env {
       throw new Error(`${symbol.name} is not a symbol`)
     }
     return this.get(symbol.name)
+  }
+  contains (name) {
+    return !!this.data[name] || this.outer.contains(name)
   }
 }
