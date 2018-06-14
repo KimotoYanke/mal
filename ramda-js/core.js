@@ -1,9 +1,10 @@
 import * as Types from './types'
+import { readline } from './node_readline'
 import {
   __,
   add,
   apply,
-  dissoc,
+  concat,
   divide,
   map,
   mapObjIndexed,
@@ -264,6 +265,45 @@ const nsApplizedFunction = mapObjIndexed(__, {
     }
     const l = map(c => func.call([c]), list.contents)
     return new Types.List(l)
+  },
+  readline: promptStr => {
+    const line = readline(promptStr.toString(false))
+    if (line == null) {
+      return Types.nil
+    }
+    return line
+  },
+  meta: func => func.meta || Types.nil,
+  'with-meta': (ast, meta) => {
+    return ast.withMeta(meta)
+  },
+  'time-ms': () => new Date().getTime(),
+  conj: (l, ...args) =>
+    l instanceof Types.Vector
+      ? new Types.Vector(concat(l.contents, args))
+      : new Types.List(concat(args.reverse(), l.contents)),
+
+  'string?': str => str instanceof Types.MalString,
+  'number?': num => num instanceof Types.Int || num instanceof Types.Float,
+  'fn?': fn => fn instanceof Types.MalFunction && !fn.isMacro,
+  'macro?': fn => fn instanceof Types.MalFunction && fn.isMacro,
+
+  seq: ast => {
+    if (ast instanceof Types.MalString) {
+      if (ast.toString(false).length === 0) {
+        return Types.nil
+      }
+      return new Types.List(
+        map(s => new Types.MalString(s), ast.toString(false).split(''))
+      )
+    }
+    if (ast instanceof Types.List || ast instanceof Types.Vector) {
+      if (ast.contents.length === 0) {
+        return Types.nil
+      }
+      return new Types.List(ast.contents)
+    }
+    return Types.nil
   }
 })((f, key) => new Types.MalFunction(apply(f)))
 
@@ -299,7 +339,8 @@ const nsFunctions = merge(
 )
 
 const nsSymbols = {
-  '*ARGV*': new Types.List([])
+  '*ARGV*': new Types.List([]),
+  '*host-language*': new Types.MalString('ramda-js')
 }
 
 const nsMacros = map(__, {})(f =>

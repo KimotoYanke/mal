@@ -1,0 +1,163 @@
+make -C ramda-js stepA_mal.js
+make[1]: ディレクトリ '/home/adam/Documents/mal/ramda-js' に入ります
+make[1]: 'stepA_mal.js' に対して行うべき事はありません.
+make[1]: ディレクトリ '/home/adam/Documents/mal/ramda-js' から出ます
+----------------------------------------------
+Testing test^ramda-js^stepA; step file: ramda-js/stepA_mal.js, test file: tests/stepA_mal.mal
+Running: env STEP=stepA_mal MAL_IMPL=js ../runtest.py --deferrable --optional   ../tests/stepA_mal.mal -- ../ramda-js/run
+Started with:
+Mal [ramda-js]
+
+
+Testing readline
+TEST: (readline "mal-user> ") -> ['',*] -> SUCCESS
+TEST: "hello" -> ['',"\"hello\""] -> SUCCESS
+
+Testing *host-language*
+TEST: (= "something bogus" *host-language*) -> ['',false] -> SUCCESS
+
+------- Deferrable Functionality ----------
+------- (Needed for self-hosting) -------
+
+Testing metadata on functions
+
+Testing metadata on mal functions
+TEST: (meta (fn* (a) a)) -> ['',nil] -> SUCCESS
+TEST: (meta (with-meta (fn* (a) a) {"b" 1})) -> ['',{"b" 1}] -> SUCCESS
+TEST: (meta (with-meta (fn* (a) a) "abc")) -> ['',"abc"] -> SUCCESS
+TEST: (def! l-wm (with-meta (fn* (a) a) {"b" 2})) -> ['',*] -> SUCCESS
+TEST: (meta l-wm) -> ['',{"b" 2}] -> SUCCESS
+TEST: (meta (with-meta l-wm {"new_meta" 123})) -> ['',{"new_meta" 123}] -> SUCCESS
+TEST: (meta l-wm) -> ['',{"b" 2}] -> SUCCESS
+TEST: (def! f-wm (with-meta (fn* [a] (+ 1 a)) {"abc" 1})) -> ['',*] -> SUCCESS
+TEST: (meta f-wm) -> ['',{"abc" 1}] -> SUCCESS
+TEST: (meta (with-meta f-wm {"new_meta" 123})) -> ['',{"new_meta" 123}] -> SUCCESS
+TEST: (meta f-wm) -> ['',{"abc" 1}] -> SUCCESS
+TEST: (def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a))) -> ['',*] -> SUCCESS
+TEST: (meta f-wm2) -> ['',{"abc" 1}] -> SUCCESS
+Meta of native functions should return nil (not fail)
+TEST: (meta +) -> ['',nil] -> SUCCESS
+
+Make sure closures and metadata co-exist
+TEST: (def! gen-plusX (fn* (x) (with-meta (fn* (b) (+ x b)) {"meta" 1}))) -> ['',*] -> SUCCESS
+TEST: (def! plus7 (gen-plusX 7)) -> ['',*] -> SUCCESS
+TEST: (def! plus8 (gen-plusX 8)) -> ['',*] -> SUCCESS
+TEST: (plus7 8) -> ['',15] -> SUCCESS
+TEST: (meta plus7) -> ['',{"meta" 1}] -> SUCCESS
+TEST: (meta plus8) -> ['',{"meta" 1}] -> SUCCESS
+TEST: (meta (with-meta plus7 {"meta" 2})) -> ['',{"meta" 2}] -> SUCCESS
+TEST: (meta plus8) -> ['',{"meta" 1}] -> SUCCESS
+
+Testing hash-map evaluation and atoms (i.e. an env)
+TEST: (def! e (atom {"+" +})) -> ['',*] -> SUCCESS
+TEST: (swap! e assoc "-" -) -> ['',*] -> SUCCESS
+TEST: ( (get @e "+") 7 8) -> ['',15] -> SUCCESS
+TEST: ( (get @e "-") 11 8) -> ['',3] -> SUCCESS
+TEST: (swap! e assoc "foo" (list)) -> ['',*] -> SUCCESS
+TEST: (get @e "foo") -> ['',()] -> SUCCESS
+TEST: (swap! e assoc "bar" '(1 2 3)) -> ['',*] -> SUCCESS
+TEST: (get @e "bar") -> ['',(1 2 3)] -> SUCCESS
+------------------------------------------------------------------
+
+------- Optional Functionality --------------
+------- (Not needed for self-hosting) -------
+
+Testing string? function
+TEST: (string? "") -> ['',true] -> SUCCESS
+TEST: (string? 'abc) -> ['',false] -> SUCCESS
+TEST: (string? "abc") -> ['',true] -> SUCCESS
+TEST: (string? :abc) -> ['',false] -> SUCCESS
+TEST: (string? (keyword "abc")) -> ['',false] -> SUCCESS
+TEST: (string? 234) -> ['',false] -> SUCCESS
+TEST: (string? nil) -> ['',false] -> SUCCESS
+Testing number? function
+TEST: (number? 123) -> ['',true] -> SUCCESS
+TEST: (number? -1) -> ['',true] -> SUCCESS
+TEST: (number? nil) -> ['',false] -> SUCCESS
+TEST: (number? false) -> ['',false] -> SUCCESS
+TEST: (number? "123") -> ['',false] -> SUCCESS
+TEST: (def! add1 (fn* (x) (+ x 1))) -> ['',*] -> SUCCESS
+Testing fn? function
+TEST: (fn? +) -> ['',true] -> SUCCESS
+TEST: (fn? add1) -> ['',true] -> SUCCESS
+TEST: (fn? cond) -> ['',false] -> SUCCESS
+TEST: (fn? "+") -> ['',false] -> SUCCESS
+TEST: (fn? :+) -> ['',false] -> SUCCESS
+Testing macro? function
+TEST: (macro? cond) -> ['',true] -> SUCCESS
+TEST: (macro? +) -> ['',false] -> SUCCESS
+TEST: (macro? add1) -> ['',false] -> SUCCESS
+TEST: (macro? "+") -> ['',false] -> SUCCESS
+TEST: (macro? :+) -> ['',false] -> SUCCESS
+
+Testing conj function
+TEST: (conj (list) 1) -> ['',(1)] -> SUCCESS
+TEST: (conj (list 1) 2) -> ['',(2 1)] -> SUCCESS
+TEST: (conj (list 2 3) 4) -> ['',(4 2 3)] -> SUCCESS
+TEST: (conj (list 2 3) 4 5 6) -> ['',(6 5 4 2 3)] -> SUCCESS
+TEST: (conj (list 1) (list 2 3)) -> ['',((2 3) 1)] -> SUCCESS
+TEST: (conj [] 1) -> ['',[1]] -> SUCCESS
+TEST: (conj [1] 2) -> ['',[1 2]] -> SUCCESS
+TEST: (conj [2 3] 4) -> ['',[2 3 4]] -> SUCCESS
+TEST: (conj [2 3] 4 5 6) -> ['',[2 3 4 5 6]] -> SUCCESS
+TEST: (conj [1] [2 3]) -> ['',[1 [2 3]]] -> SUCCESS
+
+Testing seq function
+TEST: (seq "abc") -> ['',("a" "b" "c")] -> SUCCESS
+TEST: (apply str (seq "this is a test")) -> ['',"this is a test"] -> SUCCESS
+TEST: (seq '(2 3 4)) -> ['',(2 3 4)] -> SUCCESS
+TEST: (seq [2 3 4]) -> ['',(2 3 4)] -> SUCCESS
+TEST: (seq "") -> ['',nil] -> SUCCESS
+TEST: (seq '()) -> ['',nil] -> SUCCESS
+TEST: (seq []) -> ['',nil] -> SUCCESS
+TEST: (seq nil) -> ['',nil] -> SUCCESS
+
+Testing metadata on collections
+TEST: (meta [1 2 3]) -> ['',nil] -> SUCCESS
+TEST: (with-meta [1 2 3] {"a" 1}) -> ['',[1 2 3]] -> SUCCESS
+TEST: (meta (with-meta [1 2 3] {"a" 1})) -> ['',{"a" 1}] -> SUCCESS
+TEST: (vector? (with-meta [1 2 3] {"a" 1})) -> ['',true] -> SUCCESS
+TEST: (meta (with-meta [1 2 3] "abc")) -> ['',"abc"] -> SUCCESS
+TEST: (meta (with-meta (list 1 2 3) {"a" 1})) -> ['',{"a" 1}] -> SUCCESS
+TEST: (list? (with-meta (list 1 2 3) {"a" 1})) -> ['',true] -> SUCCESS
+TEST: (meta (with-meta {"abc" 123} {"a" 1})) -> ['',{"a" 1}] -> SUCCESS
+TEST: (map? (with-meta {"abc" 123} {"a" 1})) -> ['',true] -> SUCCESS
+TEST: (def! l-wm (with-meta [4 5 6] {"b" 2})) -> ['',[4 5 6]] -> SUCCESS
+TEST: (meta l-wm) -> ['',{"b" 2}] -> SUCCESS
+TEST: (meta (with-meta l-wm {"new_meta" 123})) -> ['',{"new_meta" 123}] -> SUCCESS
+TEST: (meta l-wm) -> ['',{"b" 2}] -> SUCCESS
+
+Testing metadata on builtin functions
+TEST: (meta +) -> ['',nil] -> SUCCESS
+TEST: (def! f-wm3 ^{"def" 2} +) -> ['',*] -> SUCCESS
+TEST: (meta f-wm3) -> ['',{"def" 2}] -> SUCCESS
+TEST: (meta +) -> ['',nil] -> SUCCESS
+
+Testing gensym and clean or macro
+TEST: (= (gensym) (gensym)) -> ['',false] -> SUCCESS
+TEST: (let* [or_FIXME 23] (or false (+ or_FIXME 100))) -> ['',123] -> SOFT FAIL (line 266):
+    Expected : '(let* [or_FIXME 23] (or false (+ or_FIXME 100)))\r\n123'
+    Got      : '(let* [or_FIXME 23] (or false (+ or_FIXME 100)))\r\nNaN'
+
+Testing time-ms function
+TEST: (def! start-time (time-ms)) -> ['',*] -> SUCCESS
+TEST: (> start-time 0) -> ['',true] -> SUCCESS
+TEST: (let* [sumdown (fn* (N) (if (> N 0) (+ N (sumdown (- N 1))) 0))] (sumdown 10)) ; Waste some time -> ['',55] -> SOFT FAIL (line 274):
+    Expected : '(let* [sumdown (fn* (N) (if (> N 0) (+ N (sumdown (- N 1))) 0))] (sumdown 10)) ; Waste some time\r\n55'
+    Got      : '(let* [sumdown (fn* (N) (if (> N 0) (+ N (sumdown (- N 1))) 0))] (sumdown 10)) ; Waste some time\r\nError: This is not a AST:undefined\r\n    at printStr (/home/adam/Documents/mal/ramda-js/printer.js:10:11)\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_curryN.js:37:27\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_arity.js:10:19\r\n    at _map (/home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_map.js:6:19)\r\n    at map (/home/adam/Documents/mal/ramda-js/node_modules/ramda/src/map.js:64:14)\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_dispatchable.js:41:15\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_curry2.js:22:18\r\n    at f1 (/home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_curry1.js:18:17)\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_pipe.js:3:27\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_arity.js:10:19'
+TEST: (> (time-ms) start-time) -> ['',true] -> SUCCESS
+
+FAILURES:
+SOFT FAILED TEST (line 266): (let* [or_FIXME 23] (or false (+ or_FIXME 100))) -> ['',123]:
+    Expected : '(let* [or_FIXME 23] (or false (+ or_FIXME 100)))\r\n123'
+    Got      : '(let* [or_FIXME 23] (or false (+ or_FIXME 100)))\r\nNaN'
+SOFT FAILED TEST (line 274): (let* [sumdown (fn* (N) (if (> N 0) (+ N (sumdown (- N 1))) 0))] (sumdown 10)) ; Waste some time -> ['',55]:
+    Expected : '(let* [sumdown (fn* (N) (if (> N 0) (+ N (sumdown (- N 1))) 0))] (sumdown 10)) ; Waste some time\r\n55'
+    Got      : '(let* [sumdown (fn* (N) (if (> N 0) (+ N (sumdown (- N 1))) 0))] (sumdown 10)) ; Waste some time\r\nError: This is not a AST:undefined\r\n    at printStr (/home/adam/Documents/mal/ramda-js/printer.js:10:11)\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_curryN.js:37:27\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_arity.js:10:19\r\n    at _map (/home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_map.js:6:19)\r\n    at map (/home/adam/Documents/mal/ramda-js/node_modules/ramda/src/map.js:64:14)\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_dispatchable.js:41:15\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_curry2.js:22:18\r\n    at f1 (/home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_curry1.js:18:17)\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_pipe.js:3:27\r\n    at /home/adam/Documents/mal/ramda-js/node_modules/ramda/src/internal/_arity.js:10:19'
+
+TEST RESULTS (for ../tests/stepA_mal.mal):
+    2: soft failing tests
+    0: failing tests
+   95: passing tests
+   97: total tests
+

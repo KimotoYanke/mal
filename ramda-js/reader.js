@@ -124,7 +124,7 @@ const readWithMeta = curry(reader => {
   if (token !== '^') {
     throw new Error(`expected '^'`)
   }
-  return new Types.List([new Types.Atom('with-meta'), secondArg, firstArg])
+  return new Types.List([new Types.Symbol('with-meta'), secondArg, firstArg])
 })
 
 const readSeq = curry((reader, start, end, astToStr) => {

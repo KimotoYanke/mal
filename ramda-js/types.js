@@ -79,6 +79,12 @@ export class List extends Seq {
     this.end = ')'
     this.type = 'list'
   }
+
+  withMeta (meta) {
+    const result = new List(this.contents)
+    result.meta = meta
+    return result
+  }
 }
 export class Vector extends Seq {
   constructor (contents) {
@@ -86,6 +92,11 @@ export class Vector extends Seq {
     this.start = '['
     this.end = ']'
     this.type = 'vector'
+  }
+  withMeta (meta) {
+    const result = new Vector(this.contents)
+    result.meta = meta
+    return result
   }
 }
 
@@ -98,6 +109,11 @@ export class HashMap extends Seq {
     this.start = '{'
     this.end = '}'
     this.type = 'hash-map'
+  }
+  withMeta (meta) {
+    const result = new HashMap(this.contents)
+    result.meta = meta
+    return result
   }
 
   toString (printReadably) {
@@ -241,6 +257,11 @@ export class MalFunction extends MalType {
       return result
     }
     return convertToAST(result)
+  }
+  withMeta (meta) {
+    const result = new MalFunction(this.func, this.this, this.env, this.params)
+    result.meta = meta
+    return result
   }
   toString () {
     return '#<function>'
